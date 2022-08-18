@@ -269,7 +269,7 @@ bin/
 *.pdb
 
 # - Linux/MacOS
-odin
+/odin
 odin.dSYM
 *.bin
 demo.bin
