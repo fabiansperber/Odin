@@ -718,6 +718,7 @@ gb_internal void lb_build_range_interval(lbProcedure *p, AstBinaryExpr *node,
 		lb_close_scope(p, lbDeferExit_Default, nullptr);
 		lb_pop_target_list(p);
 
+		lb_set_debug_position_to_ast_end(p, rs->body);
 		if (check != nullptr) {
 			lb_emit_jump(p, check);
 			lb_start_block(p, check);
@@ -934,6 +935,7 @@ gb_internal void lb_build_range_stmt_struct_soa(lbProcedure *p, AstRangeStmt *rs
 
 	lb_close_scope(p, lbDeferExit_Default, nullptr);
 	lb_pop_target_list(p);
+	lb_set_debug_position_to_ast_end(p, rs->body);
 	lb_emit_jump(p, loop);
 	lb_start_block(p, done);
 
@@ -1073,6 +1075,7 @@ gb_internal void lb_build_range_stmt(lbProcedure *p, AstRangeStmt *rs, Scope *sc
 
 	lb_close_scope(p, lbDeferExit_Default, nullptr);
 	lb_pop_target_list(p);
+	lb_set_debug_position_to_ast_end(p, rs->body);
 	lb_emit_jump(p, loop);
 	lb_start_block(p, done);
 }
@@ -1628,9 +1631,7 @@ gb_internal void lb_build_type_switch_stmt(lbProcedure *p, AstTypeSwitchStmt *ss
 		}
 
 		lbBlock *body = lb_create_block(p, "typeswitch.body");
-		if (p->debug_info != nullptr) {
-			LLVMSetCurrentDebugLocation2(p->builder, lb_debug_location_from_ast(p, clause));
-		}
+		lb_set_debug_position_to_ast(p, clause);
 
 		bool saw_nil = false;
 		for (Ast *type_expr : cc->list) {
@@ -2075,6 +2076,7 @@ gb_internal void lb_build_if_stmt(lbProcedure *p, Ast *node) {
 
 		lb_build_stmt(p, is->body);
 
+		lb_set_debug_position_to_ast_end(p, is->body);
 		lb_emit_jump(p, done);
 
 		if (is->else_stmt != nullptr) {
@@ -2084,6 +2086,7 @@ gb_internal void lb_build_if_stmt(lbProcedure *p, Ast *node) {
 			lb_build_stmt(p, is->else_stmt);
 			lb_close_scope(p, lbDeferExit_Default, nullptr);
 
+			lb_set_debug_position_to_ast_end(p, is->else_stmt);
 			lb_emit_jump(p, done);
 		}
 	}
@@ -2099,9 +2102,7 @@ gb_internal void lb_build_for_stmt(lbProcedure *p, Ast *node) {
 	ast_node(fs, ForStmt, node);
 
 	lb_open_scope(p, fs->scope); // Open Scope here
-	if (p->debug_info != nullptr) {
-		LLVMSetCurrentDebugLocation2(p->builder, lb_debug_location_from_ast(p, node));
-	}
+	lb_set_debug_position_to_ast(p, node);
 
 	if (fs->init != nullptr) {
 	#if 1
@@ -2127,9 +2128,7 @@ gb_internal void lb_build_for_stmt(lbProcedure *p, Ast *node) {
 
 	if (loop != body) {
 		// right now the condition (all expressions) will not set it's debug location, so we will do it here
-		if (p->debug_info != nullptr) {
-			LLVMSetCurrentDebugLocation2(p->builder, lb_debug_location_from_ast(p, fs->cond));
-		}
+		lb_set_debug_position_to_ast(p, fs->cond);
 		lb_build_cond(p, fs->cond, body, done);
 		lb_start_block(p, body);
 	}
@@ -2140,9 +2139,7 @@ gb_internal void lb_build_for_stmt(lbProcedure *p, Ast *node) {
 
 	lb_pop_target_list(p);
 
-	if (p->debug_info != nullptr) {
-		LLVMSetCurrentDebugLocation2(p->builder, lb_debug_end_location_from_ast(p, fs->body));
-	}
+	lb_set_debug_position_to_ast_end(p, fs->body);
 	lb_emit_jump(p, post);
 
 	if (fs->post != nullptr) {
@@ -2367,9 +2364,7 @@ gb_internal void lb_build_stmt(lbProcedure *p, Ast *node) {
 		}
 	}
 
-	if (p->debug_info != nullptr) {
-		LLVMSetCurrentDebugLocation2(p->builder, lb_debug_location_from_ast(p, node));
-	}
+	lb_set_debug_position_to_ast(p, node);
 
 	u16 prev_state_flags = p->state_flags;
 	defer (p->state_flags = prev_state_flags);
@@ -2586,6 +2581,7 @@ gb_internal void lb_build_stmt(lbProcedure *p, Ast *node) {
 		}
 		if (block != nullptr) {
 			lb_emit_defer_stmts(p, lbDeferExit_Branch, block);
+			lb_set_debug_position_to_ast(p, node);
 		}
 		lb_emit_jump(p, block);
 		lb_start_block(p, lb_create_block(p, "unreachable"));

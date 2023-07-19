@@ -46,6 +46,17 @@ gb_internal LLVMMetadataRef lb_debug_end_location_from_ast(lbProcedure *p, Ast *
 	return lb_debug_location_from_token_pos(p, ast_end_token(node).pos);
 }
 
+gb_internal void lb_set_debug_position_to_ast(lbProcedure *p, Ast *node) {
+	if (p->debug_info != nullptr) {
+		LLVMSetCurrentDebugLocation2(p->builder, lb_debug_location_from_ast(p, node));
+	}
+}
+gb_internal void lb_set_debug_position_to_ast_end(lbProcedure *p, Ast *node) {
+	if (p->debug_info != nullptr) {
+		LLVMSetCurrentDebugLocation2(p->builder, lb_debug_end_location_from_ast(p, node));
+	}
+}
+
 gb_internal LLVMMetadataRef lb_debug_type_internal_proc(lbModule *m, Type *type) {
 	i64 size = type_size_of(type); // Check size
 	gb_unused(size);
