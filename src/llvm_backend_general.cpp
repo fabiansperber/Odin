@@ -296,10 +296,22 @@ gb_internal LLVMValueRef llvm_zero(lbModule *m) {
 gb_internal LLVMValueRef llvm_alloca(lbProcedure *p, LLVMTypeRef llvm_type, isize alignment, char const *name) {
 	LLVMPositionBuilderAtEnd(p->builder, p->decl_block->block);
 
+	// clear debug location for alloca
+	LLVMMetadataRef current_debug_info = nullptr;
+	if (p->debug_info != nullptr) {
+		current_debug_info = LLVMGetCurrentDebugLocation2(p->builder);
+		LLVMSetCurrentDebugLocation2(p->builder, nullptr);
+	}
+
 	LLVMValueRef val = LLVMBuildAlloca(p->builder, llvm_type, name);
 	LLVMSetAlignment(val, cast(unsigned int)alignment);
 
 	LLVMPositionBuilderAtEnd(p->builder, p->curr_block->block);
+
+	// restore debug location
+	if (p->debug_info != nullptr && current_debug_info != nullptr) {
+		LLVMSetCurrentDebugLocation2(p->builder, current_debug_info);
+	}
 
 	return val;
 }
